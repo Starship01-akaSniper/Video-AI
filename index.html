@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skywork AI Video Generator | Create AI Videos for Free</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="Generate stunning AI-powered videos from images using Skywork AI. Free video generation for YouTube content creation.">
+    <meta name="keywords" content="AI video generator, Skywork AI, free video creation, text to video, image to video">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Skywork AI Video Generator">
+    <meta property="og:description" content="Create AI-powered videos from images for free">
+    <meta property="og:type" content="website">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+</head>
+
+<body>
+    <!-- Background Gradients -->
+    <div class="gradient-bg"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🎬</span>
+                    <span class="logo-text">Skywork AI Video Generator</span>
+                </div>
+                <div class="header-badge">
+                    <span class="badge-dot"></span>
+                    <span>Free & Unlimited</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Hero Section -->
+            <section class="hero">
+                <h1 class="hero-title">Create Stunning AI Videos</h1>
+                <p class="hero-subtitle">Transform your images into professional videos with Skywork AI - Perfect for
+                    YouTube content creation</p>
+            </section>
+
+            <!-- Generator Section -->
+            <section class="generator">
+                <div class="generator-grid">
+                    <!-- Upload Section -->
+                    <div class="card upload-card">
+                        <div class="card-header">
+                            <h2 class="card-title">📤 Upload Image</h2>
+                            <p class="card-subtitle">Drop your image or click to browse</p>
+                        </div>
+
+                        <div class="upload-area" id="uploadArea">
+                            <input type="file" id="imageInput" accept="image/*" hidden>
+                            <div class="upload-placeholder" id="uploadPlaceholder">
+                                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p class="upload-text">Click or drag image here</p>
+                                <p class="upload-hint">Supports PNG, JPG, WebP (Max 10MB)</p>
+                            </div>
+                            <div class="image-preview" id="imagePreview" style="display: none;">
+                                <img id="previewImg" alt="Preview">
+                                <button class="remove-btn" id="removeImage">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Section -->
+                    <div class="card settings-card">
+                        <div class="card-header">
+                            <h2 class="card-title">⚙️ Video Settings</h2>
+                            <p class="card-subtitle">Customize your video generation</p>
+                        </div>
+
+                        <div class="settings-form">
+                            <div class="form-group">
+                                <label for="promptInput" class="form-label">Video Prompt</label>
+                                <textarea id="promptInput" class="form-input"
+                                    placeholder="Describe the video you want to create... (e.g., 'A serene landscape with flowing water and birds flying')"
+                                    rows="4"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="negativePrompt" class="form-label">Negative Prompt (Optional)</label>
+                                <input type="text" id="negativePrompt" class="form-input"
+                                    placeholder="What to avoid... (e.g., 'blurry, distorted, low quality')">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="durationSelect" class="form-label">Duration</label>
+                                    <select id="durationSelect" class="form-select">
+                                        <option value="5">5 seconds</option>
+                                        <option value="10" selected>10 seconds</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="qualitySelect" class="form-label">Quality</label>
+                                    <select id="qualitySelect" class="form-select">
+                                        <option value="standard">Standard</option>
+                                        <option value="hd" selected>HD</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button class="generate-btn" id="generateBtn" disabled>
+                                <span class="btn-icon">✨</span>
+                                <span class="btn-text">Generate Video</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Section -->
+                <div class="card result-card" id="resultCard" style="display: none;">
+                    <div class="card-header">
+                        <h2 class="card-title">🎉 Your Video is Ready!</h2>
+                        <p class="card-subtitle">Preview and download your AI-generated video</p>
+                    </div>
+
+                    <div class="result-content">
+                        <div class="video-container">
+                            <video id="resultVideo" controls></video>
+                        </div>
+
+                        <div class="result-actions">
+                            <button class="download-btn" id="downloadBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download Video
+                            </button>
+
+                            <button class="secondary-btn" id="generateNewBtn">
+                                Generate Another
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Section -->
+                <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                    <div class="loading-card">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                        </div>
+                        <h3 class="loading-title">Generating Your Video</h3>
+                        <p class="loading-text" id="loadingText">Initializing AI model...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p class="loading-hint">This may take 30-60 seconds</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section class="features">
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3 class="feature-title">Lightning Fast</h3>
+                        <p class="feature-text">Generate videos in under 60 seconds with cutting-edge AI</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">🎨</div>
+                        <h3 class="feature-title">Professional Quality</h3>
+                        <p class="feature-text">HD output perfect for YouTube and social media</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">💰</div>
+                        <h3 class="feature-title">100% Free</h3>
+                        <p class="feature-text">No credits, no subscriptions, no hidden costs</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">🚀</div>
+                        <h3 class="feature-title">No Sign-up Required</h3>
+                        <p class="feature-text">Start creating videos instantly without registration</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-text">
+                Powered by <strong>Skywork AI</strong> via APIFree.ai |
+                <a href="https://github.com/yourusername/skywork-video-generator" target="_blank"
+                    class="footer-link">View on GitHub</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+</body>
+
+</html>

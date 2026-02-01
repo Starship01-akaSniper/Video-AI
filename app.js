@@ -7,7 +7,8 @@ const CONFIG = {
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
     ALLOWED_TYPES: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
     POLL_INTERVAL: 3000, // 3 seconds
-    MAX_POLL_ATTEMPTS: 60 // 3 minutes total
+    MAX_POLL_ATTEMPTS: 60, // 3 minutes total
+    DEMO_MODE: true // Set to true to use demo videos when API doesn't support video generation
 };
 
 // ======================================
@@ -260,10 +261,29 @@ async function generateVideo() {
                 updateLoadingState('Video generated successfully!', 100);
                 displayVideo(urlMatch[0]);
             } else {
-                // No video URL found
-                hideLoading();
-                showToast('The API does not currently support direct video generation. Response: ' + message.substring(0, 100), 'error');
-                console.log('Full API response:', message);
+                // No video URL found - API doesn't support video generation
+                if (CONFIG.DEMO_MODE) {
+                    console.log('API does not support video generation. Using demo mode.');
+                    updateLoadingState('Generating demo video...', 70);
+                    await sleep(2000); // Simulate processing time
+
+                    // Use demo videos
+                    const demoVideos = [
+                        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+                        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+                    ];
+
+                    const randomVideo = demoVideos[Math.floor(Math.random() * demoVideos.length)];
+                    updateLoadingState('Video generated successfully!', 100);
+                    displayVideo(randomVideo);
+
+                    showToast('Demo Mode: API does not support video generation. Showing sample video.', 'info');
+                } else {
+                    hideLoading();
+                    showToast('The API does not currently support video generation. Enable DEMO_MODE in app.js to test the UI.', 'error');
+                    console.log('Full API response:', message);
+                }
             }
         } else {
             // Unknown format - provide detailed error

@@ -155,120 +155,148 @@ async function generateVideo() {
         const duration = elements.durationSelect.value;
         const quality = elements.qualitySelect.value;
 
+        console.log('Starting video generation with:', {
+            prompt,
+            negativePrompt,
+            duration,
+            quality
+        });
+
         updateLoadingState('Sending request to Skywork AI...', 10);
 
-        // API Request - Using OpenAI-compatible format for apifree.ai
-        // Note: The exact endpoint and format may vary. This is based on standard multimodal API patterns.
-        const response = await fetch(`${CONFIG.API_BASE_URL}/video/generations`, {
+        // Try primary endpoint: chat/completions with multimodal support
+        const response = await fetch(`${CONFIG.API_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${CONFIG.API_KEY}`
             },
             body: JSON.stringify({
-                model: 'skywork-video-v3', // Model name - may need adjustment based on actual API
-                prompt: prompt,
-                negative_prompt: negativePrompt,
-                image: state.imageBase64,
-                duration: parseInt(duration),
-                quality: quality,
-                num_frames: quality === 'hd' ? 60 : 30
+                model: 'skywork-video-v1',
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'text',
+                                text: `Create a ${duration}-second video. ${prompt}${negativePrompt ? ` Avoid: ${negativePrompt}` : ''}`
+                            },
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: state.imageBase64
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens: 4000,
+                stream: false
             })
         });
 
         updateLoadingState('Processing your request...', 30);
 
+        console.log('API Response Status:', response.status);
+
+        // Read response text first for debugging
+        const responseText = await response.text();
+        console.log('API Response:', responseText);
+
         if (!response.ok) {
-            // Try alternative endpoint format
-            if (response.status === 404) {
-                return await tryAlternativeEndpoint(prompt, negativePrompt, duration, quality);
+            let errorMessage = `API Error (${response.status})`;
+            try {
+                const errorData = JSON.parse(responseText);
+                errorMessage = errorData.error?.message || errorData.message || errorMessage;
+
+                // Provide helpful error messages
+                if (response.status === 401) {
+                    errorMessage = 'Invalid API key. Please check your API key configuration.';
+                } else if (response.status === 429) {
+                    errorMessage = 'Rate limit exceeded. Please try again in a few moments.';
+                } else if (response.status === 404) {
+                    errorMessage = 'API endpoint not found. The service may not support video generation yet.';
+                }
+            } catch (e) {
+                console.error('Error parsing error response:', e);
             }
 
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+            throw new Error(errorMessage);
         }
 
-        const data = await response.json();
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse response JSON:', e);
+            throw new Error('Invalid response from API. Please try again.');
+        }
+
+        console.log('Parsed API Data:', data);
 
         // Handle different response formats
-        if (data.video_url) {
-            // Direct URL returned
+        if (data.video_url || data.videoUrl || data.video) {
+            // Direct video URL in response
+            const videoUrl = data.video_url || data.videoUrl || data.video;
             updateLoadingState('Video generated successfully!', 100);
-            displayVideo(data.video_url);
-        } else if (data.id || data.task_id) {
+            displayVideo(videoUrl);
+        } else if (data.id || data.task_id || data.taskId) {
             // Job ID returned - need to poll
-            const jobId = data.id || data.task_id;
+            const jobId = data.id || data.task_id || data.taskId;
+            console.log('Polling for job:', jobId);
             await pollForVideo(jobId);
-        } else if (data.data && data.data[0]?.url) {
-            // OpenAI-style response
+        } else if (data.data && Array.isArray(data.data) && data.data[0]?.url) {
+            // OpenAI-style response with image/video URL
             updateLoadingState('Video generated successfully!', 100);
             displayVideo(data.data[0].url);
+        } else if (data.choices && data.choices[0]?.message) {
+            // Chat completion response - may contain video URL or instructions
+            const message = data.choices[0].message.content;
+            console.log('Chat response message:', message);
+
+            // Try to extract video URL from message
+            const urlMatch = message.match(/https?:\/\/[^\s]+\.(mp4|webm|mov)/i);
+            if (urlMatch) {
+                updateLoadingState('Video generated successfully!', 100);
+                displayVideo(urlMatch[0]);
+            } else {
+                // No video URL found
+                hideLoading();
+                showToast('The API does not currently support direct video generation. Response: ' + message.substring(0, 100), 'error');
+                console.log('Full API response:', message);
+            }
         } else {
-            throw new Error('Unexpected API response format');
+            // Unknown format - provide detailed error
+            console.error('Unexpected API response structure:', data);
+            hideLoading();
+
+            // Check if it's a text-only model response
+            showToast('API returned unexpected format. This may be a text-only model. Check console for details.', 'error');
+
+            // Display a helpful message
+            console.log('=== DEBUG INFO ===');
+            console.log('Response keys:', Object.keys(data));
+            console.log('Full response:', JSON.stringify(data, null, 2));
+            console.log('=================');
         }
 
     } catch (error) {
         console.error('Video generation error:', error);
         hideLoading();
-        showToast(error.message || 'Failed to generate video. Please try again.', 'error');
+
+        // Provide user-friendly error message
+        const userMessage = error.message || 'Failed to generate video. Please check the console for details.';
+        showToast(userMessage, 'error');
+
+        // Log helpful debugging info
+        console.log('=== ERROR DEBUG INFO ===');
+        console.log('Error:', error);
+        console.log('API Key configured:', CONFIG.API_KEY ? 'Yes' : 'No');
+        console.log('API Base URL:', CONFIG.API_BASE_URL);
+        console.log('Image uploaded:', state.imageBase64 ? 'Yes' : 'No');
+        console.log('=======================');
     } finally {
         state.isGenerating = false;
-    }
-}
-
-async function tryAlternativeEndpoint(prompt, negativePrompt, duration, quality) {
-    // Try chat completions endpoint with vision
-    updateLoadingState('Trying alternative API endpoint...', 20);
-
-    const response = await fetch(`${CONFIG.API_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${CONFIG.API_KEY}`
-        },
-        body: JSON.stringify({
-            model: 'skywork-video',
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'text',
-                            text: `Generate a ${duration}-second video with this prompt: ${prompt}${negativePrompt ? `. Avoid: ${negativePrompt}` : ''}`
-                        },
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: state.imageBase64
-                            }
-                        }
-                    ]
-                }
-            ],
-            max_tokens: 1000
-        })
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || 'API endpoint not available. Please check the API documentation.');
-    }
-
-    const data = await response.json();
-
-    if (data.choices && data.choices[0]?.message?.content) {
-        // Parse response for video URL
-        const content = data.choices[0].message.content;
-        const urlMatch = content.match(/https?:\/\/[^\s]+\.mp4/);
-
-        if (urlMatch) {
-            updateLoadingState('Video generated successfully!', 100);
-            displayVideo(urlMatch[0]);
-        } else {
-            throw new Error('No video URL found in response');
-        }
-    } else {
-        throw new Error('Unexpected response format');
     }
 }
 
@@ -283,21 +311,33 @@ async function pollForVideo(jobId) {
         await sleep(CONFIG.POLL_INTERVAL);
 
         try {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/video/generations/${jobId}`, {
+            // Try multiple possible polling endpoints
+            let response = await fetch(`${CONFIG.API_BASE_URL}/video/generations/${jobId}`, {
                 headers: {
                     'Authorization': `Bearer ${CONFIG.API_KEY}`
                 }
             });
 
+            // If 404, try alternative endpoint
+            if (response.status === 404) {
+                response = await fetch(`${CONFIG.API_BASE_URL}/tasks/${jobId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${CONFIG.API_KEY}`
+                    }
+                });
+            }
+
             if (!response.ok) {
-                throw new Error('Failed to check video status');
+                console.warn(`Polling attempt ${attempts} failed with status ${response.status}`);
+                continue;
             }
 
             const data = await response.json();
+            console.log(`Poll attempt ${attempts}:`, data);
 
-            if (data.status === 'completed' || data.status === 'succeeded') {
+            if (data.status === 'completed' || data.status === 'succeeded' || data.status === 'success') {
                 updateLoadingState('Video generated successfully!', 100);
-                const videoUrl = data.video_url || data.url || data.output?.url;
+                const videoUrl = data.video_url || data.videoUrl || data.url || data.output?.url || data.result?.url;
 
                 if (videoUrl) {
                     displayVideo(videoUrl);
@@ -306,9 +346,9 @@ async function pollForVideo(jobId) {
                     throw new Error('Video URL not found in completed response');
                 }
             } else if (data.status === 'failed' || data.status === 'error') {
-                throw new Error(data.error || 'Video generation failed');
+                throw new Error(data.error || data.message || 'Video generation failed');
             }
-            // Continue polling if status is 'processing', 'pending', etc.
+            // Continue polling if status is 'processing', 'pending', 'queued', etc.
         } catch (error) {
             if (attempts >= CONFIG.MAX_POLL_ATTEMPTS) {
                 throw error;

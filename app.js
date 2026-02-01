@@ -165,34 +165,23 @@ async function generateVideo() {
 
         updateLoadingState('Sending request to Skywork AI...', 10);
 
-        // Try primary endpoint: chat/completions with multimodal support
-        const response = await fetch(`${CONFIG.API_BASE_URL}/chat/completions`, {
+        // Try primary endpoint: video generations with specific model ID from URL
+        // Model ID derived from: https://www.apifree.ai/model/skywork-ai/skyreels-v3/standard/single-avatar
+        const response = await fetch(`${CONFIG.API_BASE_URL}/video/generations`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${CONFIG.API_KEY}`
             },
             body: JSON.stringify({
-                model: 'skywork-video-v1',
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            {
-                                type: 'text',
-                                text: `Create a ${duration}-second video. ${prompt}${negativePrompt ? ` Avoid: ${negativePrompt}` : ''}`
-                            },
-                            {
-                                type: 'image_url',
-                                image_url: {
-                                    url: state.imageBase64
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens: 4000,
-                stream: false
+                model: 'skywork-ai/skyreels-v3/standard/single-avatar', // Specific model for Single Avatar
+                prompt: prompt,
+                image: state.imageBase64, // Direct image field for many video APIs
+                image_url: state.imageBase64, // Alternative field name
+                duration: parseInt(duration),
+                aspect_ratio: "16:9", // Standard ratio
+                fps: 25,
+                negative_prompt: negativePrompt
             })
         });
 
